@@ -236,7 +236,6 @@ GUI.SS.MouseButton1Click:connect(function()
             game:FindService('StarterGui'):SetCore('SendNotification', {
                 Title = 'Decal Logger',
                 Text = 'Saved decals\n(Decals'..filename..'.txt)',
-                Icon = 'rbxassetid://16923152454',
                 Duration = 5,
             })
         end
@@ -244,7 +243,6 @@ GUI.SS.MouseButton1Click:connect(function()
         game:FindService('StarterGui'):SetCore('SendNotification', {
             Title = 'Decal Logger',
             Text = 'Exploit cannot writefile :(',
-            Icon = 'rbxassetid://16923152454',
             Duration = 5,
         })
     end
@@ -517,7 +515,6 @@ GUI.AutoScan.MouseButton1Click:connect(function()
         game:FindService('StarterGui'):SetCore('SendNotification', {
             Title = 'Decal Logger',
             Text = 'Auto Scan ENABLED',
-            Icon = 'rbxassetid://16923152454',
             Duration = 5,
         })
     else autoscan = false
@@ -525,7 +522,6 @@ GUI.AutoScan.MouseButton1Click:connect(function()
         game:FindService('StarterGui'):SetCore('SendNotification', {
             Title = 'Decal Logger',
             Text = 'Auto Scan DISABLED',
-            Icon = 'rbxassetid://16923152454',
             Duration = 5,
         })
     end
