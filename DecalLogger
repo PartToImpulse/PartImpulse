@@ -1,0 +1,816 @@
+-- I don't know
+local aa = game:GetObjects("rbxassetid://01997056190")[1]
+aa.Parent = game.CoreGui
+
+local popupFrame = aa.PopupFrame.PopupFrame
+popupFrame.Title.Text = "decal logger"
+
+popupFrame.All.Text = "All Decals"
+popupFrame.Workspace.Text = "Workspace"
+popupFrame.Lighting.Text = "Lighting"
+popupFrame.SoundS.Text = "ServerStorage"
+
+wait(0.2)
+GUI = popupFrame
+pos = 0
+
+ignore = {
+    "http://www.roblox.com/asset/?id=5616179370",
+    "http://www.roblox.com/asset/?id=124075064",
+    "http://www.roblox.com/asset?id=494290547",
+    "http://www.roblox.com/asset/?id=3671289349",
+    "http://www.roblox.com/asset/?id=20298933",
+    "rbxasset://textures/face.png",
+    "http://www.roblox.com/asset/?id=144080495", 
+    "rbxthumb://type=Asset&id=123456&w=420&h=420",
+    "http://www.roblox.com/asset/?id=15431991",
+    "http://www.roblox.com/asset/?id=7699086", 
+    "http://www.roblox.com/asset/?id=398670843",
+    "http://www.roblox.com/asset/?id=14861556",
+    "http://www.roblox.com/asset/?id=3462805916",
+    "rbxassetid://382308374",
+    "rbxassetid://4879250908",
+    "rbxassetid://2561280907",
+    "rbxassetid://3185893831",
+    "rbxassetid://5280692315",
+    "rbxassetid://301362377",
+    "http://www.roblox.com/asset/?id=83022608"
+}
+
+function shouldSkipDecal(decal)
+    if FindTable(ignore, decal.Texture) then
+        return true
+    end
+    
+    if decal.Name:lower() == "face" and decal.Parent and decal.Parent.Name == "Head" then
+        return true
+    end
+    
+    if decal.Name == "Shirt Graphic" or decal.ClassName == "Shirt Graphic" or decal.Name:lower() == "roblox" then
+        return true
+    end
+    
+    local parent = decal.Parent
+    while parent do
+        if parent:IsA("Model") and (parent:FindFirstChildOfClass("Humanoid") or parent.Name == "Dummy") then
+            if decal.Parent.Name == "Head" or decal.Name:lower() == "face" then
+                return true
+            end
+        end
+        parent = parent.Parent
+    end
+    
+    return false
+end
+
+function isInPlayerTool(decal)
+    local parent = decal.Parent
+    while parent do
+        if parent:IsA("Tool") then
+            local toolParent = parent.Parent
+            if toolParent then
+                if toolParent:IsA("Backpack") or 
+                   (toolParent:IsA("Model") and toolParent:FindFirstChildOfClass("Humanoid")) then
+                    return true
+                end
+            end
+        end
+        parent = parent.Parent
+    end
+    return false
+end
+
+function shouldIncludeDecal(decal)
+    if isInPlayerTool(decal) then
+        return true
+    end
+    
+    return not shouldSkipDecal(decal)
+end
+
+local previewFrame = Instance.new("Frame")
+previewFrame.Name = "HoverPreview"
+previewFrame.Size = UDim2.new(0, 150, 0, 150)
+previewFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+previewFrame.BorderSizePixel = 2
+previewFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+previewFrame.Visible = false
+previewFrame.ZIndex = 10
+previewFrame.Parent = aa
+
+local previewImage = Instance.new("ImageLabel")
+previewImage.Size = UDim2.new(1, -10, 1, -10)
+previewImage.Position = UDim2.new(0, 5, 0, 5)
+previewImage.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+previewImage.ZIndex = 11
+previewImage.Parent = previewFrame
+
+local shadow = Instance.new("Frame")
+shadow.Name = "Shadow"
+shadow.Size = UDim2.new(1, 10, 1, 10)
+shadow.Position = UDim2.new(0, -5, 0, -5)
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.7
+shadow.ZIndex = 9
+shadow.Parent = previewFrame
+
+local currentHoverItem = nil
+
+local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+local previewConnection
+previewConnection = game:GetService("RunService").RenderStepped:Connect(function()
+    if previewFrame.Visible then
+        previewFrame.Position = UDim2.new(0, mouse.X + 15, 0, mouse.Y + 15)
+    end
+end)
+
+GUI.Close.MouseButton1Click:connect(function()
+    GUI:TweenSize(UDim2.new(0, 360, 0, 0),"Out","Quad",0.5,true) wait(0.6)
+    GUI.Parent:TweenSize(UDim2.new(0, 0, 0, 20),"Out","Quad",0.5,true) wait(0.6)
+    itemadded:Disconnect()
+    if previewConnection then
+        previewConnection:Disconnect()
+    end
+    aa:Destroy()
+end)
+
+local min = false
+GUI.Minimize.MouseButton1Click:connect(function()
+    if min == false then
+        GUI:TweenSize(UDim2.new(0, 360, 0, 20),"Out","Quad",0.5,true) min = true
+    else
+        GUI:TweenSize(UDim2.new(0, 360, 0, 260),"Out","Quad",0.5,true) min = false
+    end
+end)
+
+function printTable(tbl)
+    if type(tbl) ~= 'table' then return nil end
+    local depthCount = -15
+
+    local function run(val, inPrefix)
+        depthCount = depthCount + 15
+        for i,v in pairs(val) do
+            if type(v) == 'table' then
+                GUI.Store.Text = GUI.Store.Text..'\n'..string.rep(' ', depthCount) .. ' [' .. tostring(i) .. '] = {'
+                run(v, false)
+                wait()
+            else
+                GUI.Store.Text = GUI.Store.Text..'\n'..string.rep(' ', depthCount) .. ' [' .. tostring(i) .. '] = ' .. tostring(v)
+                wait()
+            end
+        end
+        depthCount = depthCount - 15
+    end
+    run(tbl, true)
+end
+
+function refreshlist()
+    pos = 0
+    GUI.Logs.CanvasSize = UDim2.new(0,0,0,0)
+    for i,v in pairs(GUI.Logs:GetChildren()) do
+        if v:IsA("Frame") then
+            v.Position = UDim2.new(0,0,0, pos)
+            GUI.Logs.CanvasSize = UDim2.new(0,0,0, pos+20)
+            pos = pos+20
+        end
+    end
+end
+
+function FindTable(Table, Name)
+    for i,v in pairs(Table) do
+        if v == Name then
+            return true
+        end 
+    end
+    return false
+end
+
+function writefileExploit()
+    if writefile then
+        return true
+    end
+end
+
+writedecals = {}
+running = false
+GUI.SS.MouseButton1Click:connect(function()
+    if writefileExploit() then
+        if running == false then
+            GUI.Load.Visible = true running = true
+            GUI.Load:TweenSize(UDim2.new(0, 360, 0, 20),"Out","Quad",0.5,true) wait(0.3)
+            for _, child in pairs(GUI.Logs:GetChildren()) do
+                if child:FindFirstChild('ImageButton') then local bttn = child:FindFirstChild('ImageButton')
+                    if bttn.BackgroundTransparency == 0 then
+                        writedecals[#writedecals + 1] = {NAME = child.NAME.Value, ID = child.ID.Value}
+                    end
+                end
+            end
+            GUI.Store.Visible = true
+            printTable(writedecals)
+            wait(0.2)
+            local filename = 0
+            local function write()
+                local file
+                pcall(function() file = readfile("Decals"..filename..".txt") end)
+                if file then
+                    filename = filename+1
+                    write()
+                else
+                    local text = tostring(GUI.Store.Text)
+                    text = text:gsub('\n', '\r\n')
+                    writefile("Decals"..filename..".txt", text)
+                end
+            end
+            write()
+            for rep = 1,10 do
+                GUI.Load.BackgroundTransparency = GUI.Load.BackgroundTransparency + 0.1
+                wait(0.05)
+            end
+            GUI.Load.Visible = false
+            GUI.Load.BackgroundTransparency = 0
+            GUI.Load.Size = UDim2.new(0, 0, 0, 20)
+            running = false
+            GUI.Store.Visible = false
+            GUI.Store.Text = ''
+            writedecals = {}
+            game:FindService('StarterGui'):SetCore('SendNotification', {
+                Title = 'Decal Logger',
+                Text = 'Saved decals\n(Decals'..filename..'.txt)',
+                Icon = 'rbxassetid://16923152454',
+                Duration = 5,
+            })
+        end
+    else
+        game:FindService('StarterGui'):SetCore('SendNotification', {
+            Title = 'Decal Logger',
+            Text = 'Exploit cannot writefile :(',
+            Icon = 'rbxassetid://16923152454',
+            Duration = 5,
+        })
+    end
+end)
+
+GUI.SA.MouseButton1Click:connect(function()
+    if writefileExploit() then
+        if running == false then
+            GUI.Load.Visible = true running = true
+            GUI.Load:TweenSize(UDim2.new(0, 360, 0, 20),"Out","Quad",0.5,true) wait(0.3)
+            for _, child in pairs(GUI.Logs:GetChildren()) do
+                if child:FindFirstChild('ImageButton') then local bttn = child:FindFirstChild('ImageButton')
+                    writedecals[#writedecals + 1] = {NAME = child.NAME.Value, ID = child.ID.Value}
+                end
+            end
+            GUI.Store.Visible = true
+            printTable(writedecals)
+            wait(0.2)
+            local filename = 0
+            local function write()
+                local file
+                pcall(function() file = readfile("Decals"..filename..".txt") end)
+                if file then
+                    filename = filename+1
+                    write()
+                else
+                    local text = tostring(GUI.Store.Text)
+                    text = text:gsub('\n', '\r\n')
+                    writefile("Decals"..filename..".txt", text)
+                end
+            end
+            write()
+            for rep = 1,10 do
+                GUI.Load.BackgroundTransparency = GUI.Load.BackgroundTransparency + 0.1
+                wait(0.05)
+            end
+            GUI.Load.Visible = false
+            GUI.Load.BackgroundTransparency = 0
+            GUI.Load.Size = UDim2.new(0, 0, 0, 20)
+            running = false
+            GUI.Store.Visible = false
+            GUI.Store.Text = ''
+            writedecals = {}
+            game:FindService('StarterGui'):SetCore('SendNotification', {
+                Title = 'Decal Logger',
+                Text = 'Saved decals\n(Decals'..filename..'.txt)',
+                Icon = 'rbxassetid://16923152454',
+                Duration = 5,
+            })
+        end
+    else
+        game:FindService('StarterGui'):SetCore('SendNotification', {
+            Title = 'Decal Logger',
+            Text = 'Exploit cannot writefile :(',
+            Icon = 'rbxassetid://16923152454',
+            Duration = 5,
+        })
+    end
+end)
+
+local assetInfoCache = {}
+
+function extractId(url)
+    local id = string.match(url, "%d+")
+    return id or "Unknown"
+end
+
+function getAssetInfo(assetId)
+    if assetInfoCache[assetId] then
+        return assetInfoCache[assetId]
+    end
+    
+    local productInfo = game:GetService("MarketplaceService"):GetProductInfo(tonumber(assetId))
+    
+    local result = {
+        Name = productInfo.Name or "Unknown",
+        Description = productInfo.Description or "No description",
+        Creator = productInfo.Creator.Name or "Unknown",
+        CreatorType = productInfo.Creator.CreatorType or "User",
+        CreationDate = os.date("%m/%d/%Y", os.time(productInfo.Created)) or "Unknown",
+        UpdatedDate = os.date("%m/%d/%Y", os.time(productInfo.Updated)) or "Unknown",
+        Price = productInfo.PriceInRobux or 0,
+        Limited = productInfo.IsLimited or false,
+        LimitedUnique = productInfo.IsLimitedUnique or false,
+        AssetType = productInfo.AssetTypeId or 0
+    }
+    
+    assetInfoCache[assetId] = result
+    return result
+end
+
+selectedDecal = nil
+selectedAssetId = nil
+function getDecals(place)
+    if running == false then
+        GUI.Load.Visible = true running = true
+        GUI.Load:TweenSize(UDim2.new(0, 360, 0, 20),"Out","Quad",0.5,true) wait(0.3)
+        for _, child in pairs(place:GetDescendants()) do
+            spawn(function()
+                if child:IsA("Decal") and not GUI.Logs:FindFirstChild(child.Texture) and shouldIncludeDecal(child) then
+                    local id = child.Texture
+                    if id ~= nil then        
+                        local newDecal = GUI.Audio:Clone()
+                        newDecal.Parent = GUI.Logs
+                        newDecal.Name = child.Texture
+                        newDecal.Visible = true
+                        newDecal.Position = UDim2.new(0,0,0, pos)
+                        GUI.Logs.CanvasSize = UDim2.new(0,0,0, pos+20)
+                        pos = pos+20
+                        
+                        newDecal.ImageButton.Image = 'rbxassetid://12770981997'
+                        
+                        local assetId = extractId(child.Texture)
+                        local assetName = "Decal_" .. assetId
+                        
+                        local function findname()
+                            local Asset = game:GetService("MarketplaceService"):GetProductInfo(assetId)
+                            return Asset.Name
+                        end
+                        
+                        local success, result = pcall(findname)
+                        if success then
+                            assetName = result
+                        end
+                        
+                        newDecal.TextLabel.Text = assetName
+                        
+                        local data = Instance.new('StringValue') 
+                        data.Parent = newDecal 
+                        data.Value = child.Texture 
+                        data.Name = 'ID'
+                        
+                        local data2 = Instance.new('StringValue') 
+                        data2.Parent = newDecal 
+                        data2.Value = assetName 
+                        data2.Name = 'NAME'
+                        
+                        local data3 = Instance.new('StringValue')
+                        data3.Parent = newDecal
+                        data3.Value = assetId
+                        data3.Name = 'ASSETID'
+
+                        newDecal.MouseEnter:Connect(function()
+                            if not GUI.Info.Visible then
+                                currentHoverItem = newDecal
+                                previewImage.Image = child.Texture
+                                previewFrame.Visible = true
+                            end
+                        end)
+                        
+                        newDecal.MouseLeave:Connect(function()
+                            if currentHoverItem == newDecal then
+                                currentHoverItem = nil
+                                previewFrame.Visible = false
+                            end
+                        end)
+                        
+                        local decalSelected = false
+                        newDecal.ImageButton.MouseButton1Click:Connect(function()
+                            if GUI.Info.Visible ~= true then
+                                if decalSelected == false then 
+                                    decalSelected = true
+                                    newDecal.ImageButton.BackgroundTransparency = 0
+                                else 
+                                    decalSelected = false
+                                    newDecal.ImageButton.BackgroundTransparency = 1
+                                end
+                            end
+                        end)
+                        
+                        newDecal.Click.MouseButton1Click:Connect(function()
+                            previewFrame.Visible = false
+                            currentHoverItem = nil
+                            
+                            selectedDecal = child.Texture
+                            selectedAssetId = assetId
+                            
+                            GUI.Info.TextLabel.Text = "Name: " .. assetName .. 
+                                "\n\nID: " .. child.Texture .. 
+                                "\n\nWorkspace Path: " .. child:GetFullName()
+                            
+                            GUI.Info.Visible = true
+                            
+                            spawn(function()
+                                local infoSuccess, assetInfo = pcall(function()
+                                    return getAssetInfo(assetId)
+                                end)
+                                
+                                if infoSuccess and assetInfo then
+                                    local priceText = assetInfo.Price > 0 and (tostring(assetInfo.Price) .. " Robux") or "Free"
+                                    local limitedText = ""
+                                    if assetInfo.Limited then
+                                        limitedText = " (Limited)"
+                                    elseif assetInfo.LimitedUnique then
+                                        limitedText = " (Limited Unique)"
+                                    end
+                                    
+                                    local assetTypeText = ""
+                                    if assetInfo.AssetType == 13 then
+                                        assetTypeText = "Decal"
+                                    elseif assetInfo.AssetType == 1 then
+                                        assetTypeText = "Image"
+                                    else
+                                        assetTypeText = "Type ID: " .. tostring(assetInfo.AssetType)
+                                    end
+                                    
+                                    GUI.Info.TextLabel.Text = "Name: " .. assetInfo.Name .. 
+                                        "\n\nID: " .. child.Texture .. 
+                                        "\n\nAsset Type: " .. assetTypeText ..
+                                        "\n\nCreator: " .. assetInfo.Creator .. 
+                                        " (" .. assetInfo.CreatorType .. ")" ..
+                                        "\nCreated: " .. assetInfo.CreationDate .. 
+                                        "\nUpdated: " .. assetInfo.UpdatedDate ..
+                                        "\nPrice: " .. priceText .. limitedText ..
+                                        "\n\nDescription: " .. string.sub(assetInfo.Description, 1, 100) .. 
+                                        (string.len(assetInfo.Description) > 100 and "..." or "") ..
+                                        "\n\nWorkspace Path: " .. child:GetFullName()
+                                end
+                            end)
+                        end)
+                    end
+                end
+            end)
+        end
+    end
+    for rep = 1,10 do
+        GUI.Load.BackgroundTransparency = GUI.Load.BackgroundTransparency + 0.1
+        wait(0.05)
+    end
+    GUI.Load.Visible = false
+    GUI.Load.BackgroundTransparency = 0
+    GUI.Load.Size = UDim2.new(0, 0, 0, 20)
+    running = false
+end
+
+GUI.All.MouseButton1Click:connect(function() getDecals(game) end)
+GUI.Workspace.MouseButton1Click:connect(function() getDecals(workspace) end)
+GUI.Lighting.MouseButton1Click:connect(function() getDecals(game:GetService('Lighting')) end)
+GUI.SoundS.MouseButton1Click:connect(function() getDecals(game:GetService('ServerStorage')) end)
+
+GUI.Logs.MouseLeave:Connect(function()
+    currentHoverItem = nil
+    previewFrame.Visible = false
+end)
+
+GUI.Clr.MouseButton1Click:connect(function()
+    for _, child in pairs(GUI.Logs:GetChildren()) do
+        if child:FindFirstChild('ImageButton') then local bttn = child:FindFirstChild('ImageButton')
+            if bttn.BackgroundTransparency == 1 then
+                bttn.Parent:Destroy()
+                refreshlist()
+            end
+        end
+    end
+end)
+
+GUI.ClrS.MouseButton1Click:connect(function()
+    for _, child in pairs(GUI.Logs:GetChildren()) do
+        if child:FindFirstChild('ImageButton') then local bttn = child:FindFirstChild('ImageButton')
+            if bttn.BackgroundTransparency == 0 then
+                bttn.Parent:Destroy()
+                refreshlist()
+            end
+        end
+    end
+end)
+
+autoscan = false
+GUI.AutoScan.MouseButton1Click:connect(function()
+    if autoscan == false then autoscan = true
+        GUI.AutoScan.BackgroundTransparency = 0.5
+        game:FindService('StarterGui'):SetCore('SendNotification', {
+            Title = 'Decal Logger',
+            Text = 'Auto Scan ENABLED',
+            Icon = 'rbxassetid://16923152454',
+            Duration = 5,
+        })
+    else autoscan = false
+        GUI.AutoScan.BackgroundTransparency = 0
+        game:FindService('StarterGui'):SetCore('SendNotification', {
+            Title = 'Decal Logger',
+            Text = 'Auto Scan DISABLED',
+            Icon = 'rbxassetid://16923152454',
+            Duration = 5,
+        })
+    end
+end)
+
+itemadded = game.DescendantAdded:connect(function(added)
+    wait()
+    if autoscan == true and added:IsA('Decal') and not GUI.Logs:FindFirstChild(added.Texture) and shouldIncludeDecal(added) then
+        local id = added.Texture
+        if id ~= nil then
+            local newDecal = GUI.Audio:Clone()
+            local scrolldown = false
+            newDecal.Parent = GUI.Logs
+            newDecal.Name = added.Texture
+            newDecal.Visible = true
+            newDecal.Position = UDim2.new(0,0,0, pos)
+            
+            if GUI.Logs.CanvasPosition.Y == GUI.Logs.CanvasSize.Y.Offset - 230 then
+                scrolldown = true
+            end
+            
+            GUI.Logs.CanvasSize = UDim2.new(0,0,0, pos+20)
+            pos = pos+20
+            
+            newDecal.ImageButton.Image = 'rbxassetid://12770981997'
+            
+            local assetId = extractId(added.Texture)
+            local assetName = "Decal_" .. assetId
+            
+            local function findname()
+                local Asset = game:GetService("MarketplaceService"):GetProductInfo(assetId)
+                return Asset.Name
+            end
+            
+            local success, result = pcall(findname)
+            if success then
+                assetName = result
+            end
+            
+            newDecal.TextLabel.Text = assetName
+            
+            local data = Instance.new('StringValue') 
+            data.Parent = newDecal 
+            data.Value = added.Texture 
+            data.Name = 'ID'
+            
+            local data2 = Instance.new('StringValue') 
+            data2.Parent = newDecal 
+            data2.Value = assetName 
+            data2.Name = 'NAME'
+            
+            local data3 = Instance.new('StringValue')
+            data3.Parent = newDecal
+            data3.Value = assetId
+            data3.Name = 'ASSETID'
+            
+            newDecal.MouseEnter:Connect(function()
+                if not GUI.Info.Visible then
+                    currentHoverItem = newDecal
+                    previewImage.Image = added.Texture
+                    previewFrame.Visible = true
+                end
+            end)
+            
+            newDecal.MouseLeave:Connect(function()
+                if currentHoverItem == newDecal then
+                    currentHoverItem = nil
+                    previewFrame.Visible = false
+                end
+            end)
+            
+            local decalSelected = false
+            newDecal.ImageButton.MouseButton1Click:Connect(function()
+                if GUI.Info.Visible ~= true then
+                    if decalSelected == false then 
+                        decalSelected = true
+                        newDecal.ImageButton.BackgroundTransparency = 0
+                    else 
+                        decalSelected = false
+                        newDecal.ImageButton.BackgroundTransparency = 1
+                    end
+                end
+            end)
+            
+            newDecal.Click.MouseButton1Click:Connect(function()
+                previewFrame.Visible = false
+                currentHoverItem = nil
+                
+                selectedDecal = added.Texture
+                selectedAssetId = assetId
+                
+                GUI.Info.TextLabel.Text = "Name: " .. assetName .. 
+                    "\n\nID: " .. added.Texture .. 
+                    "\n\nWorkspace Path: " .. added:GetFullName()
+                
+                GUI.Info.Visible = true
+                
+                spawn(function()
+                    local infoSuccess, assetInfo = pcall(function()
+                        return getAssetInfo(assetId)
+                    end)
+                    
+                    if infoSuccess and assetInfo then
+                        local priceText = assetInfo.Price > 0 and (tostring(assetInfo.Price) .. " Robux") or "Free"
+                        local limitedText = ""
+                        if assetInfo.Limited then
+                            limitedText = " (Limited)"
+                        elseif assetInfo.LimitedUnique then
+                            limitedText = " (Limited Unique)"
+                        end
+                        
+                        local assetTypeText = ""
+                        if assetInfo.AssetType == 13 then
+                            assetTypeText = "Decal"
+                        elseif assetInfo.AssetType == 1 then
+                            assetTypeText = "Image"
+                        else
+                            assetTypeText = "Type ID: " .. tostring(assetInfo.AssetType)
+                        end
+                        
+                        GUI.Info.TextLabel.Text = "Name: " .. assetInfo.Name .. 
+                            "\n\nID: " .. added.Texture .. 
+                            "\n\nAsset Type: " .. assetTypeText ..
+                            "\n\nCreator: " .. assetInfo.Creator .. 
+                            " (" .. assetInfo.CreatorType .. ")" ..
+                            "\nCreated: " .. assetInfo.CreationDate .. 
+                            "\nUpdated: " .. assetInfo.UpdatedDate ..
+                            "\nPrice: " .. priceText .. limitedText ..
+                            "\n\nDescription: " .. string.sub(assetInfo.Description, 1, 100) .. 
+                            (string.len(assetInfo.Description) > 100 and "..." or "") ..
+                            "\n\nWorkspace Path: " .. added:GetFullName()
+                    end
+                end)
+            end)
+            
+            if scrolldown == true then
+                GUI.Logs.CanvasPosition = Vector2.new(0, 9999999999999999999999999999999999999999999, 0, 0)
+            end
+        end
+    end
+end)
+
+GUI.Info.Listen.Text = "Preview"
+GUI.Info.Listen.MouseButton1Click:Connect(function()
+    local previewFrame = Instance.new("Frame")
+    previewFrame.Size = UDim2.new(0, 200, 0, 200)
+    previewFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
+    previewFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    previewFrame.BorderSizePixel = 0
+    previewFrame.Parent = GUI.Info
+    
+    local previewImage = Instance.new("ImageLabel")
+    previewImage.Size = UDim2.new(1, -10, 1, -10)
+    previewImage.Position = UDim2.new(0, 5, 0, 5)
+    previewImage.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    previewImage.Image = selectedDecal
+    previewImage.Parent = previewFrame
+    
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 20, 0, 20)
+    closeButton.Position = UDim2.new(1, -20, 0, 0)
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.Parent = previewFrame
+    
+    closeButton.MouseButton1Click:Connect(function()
+        previewFrame:Destroy()
+    end)
+end)
+
+GUI.Info.Copy.MouseButton1Click:Connect(function()
+    if pcall(function() Synapse:Copy(selectedDecal) end) then    
+    else
+        local clip = setclipboard or Clipboard.set
+        clip(selectedDecal)
+    end
+    game:FindService('StarterGui'):SetCore('SendNotification', {
+        Title = 'Decal Logger',
+        Text = 'Copied to clipboard',
+        Icon = 'rbxassetid://16923152454',
+        Duration = 5,
+    })
+end)
+
+GUI.Info.Close.MouseButton1Click:Connect(function()
+    GUI.Info.Visible = false
+    for _, frame in pairs(GUI.Info:GetChildren()) do
+        if frame:IsA("Frame") then
+            frame:Destroy()
+        end
+    end
+end)
+
+GUI.Info:GetPropertyChangedSignal("Visible"):Connect(function()
+    if GUI.Info.Visible then
+        previewFrame.Visible = false
+        currentHoverItem = nil
+    end
+end)
+
+function drag(gui)
+    spawn(function()
+        local UserInputService = game:GetService("UserInputService")
+        local RunService = game:GetService("RunService")
+        
+        local dragging = false
+        local dragInput
+        local dragStart
+        local startPos
+        
+        local targetPosition
+        local dragSpeed = 0.2
+        
+        local function updateDrag()
+            if dragging then
+                local delta = dragInput.Position - dragStart
+                
+                targetPosition = UDim2.new(
+                    startPos.X.Scale, 
+                    startPos.X.Offset + delta.X, 
+                    startPos.Y.Scale, 
+                    startPos.Y.Offset + delta.Y
+                )
+            end
+        end
+        
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            if targetPosition and gui then
+                gui.Position = gui.Position:Lerp(
+                    targetPosition,
+                    dragSpeed
+                )
+            end
+        end)
+        
+        gui.AncestryChanged:Connect(function(_, parent)
+            if not parent and connection then
+                connection:Disconnect()
+            end
+        end)
+        
+        gui.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = gui.Position
+                
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        gui.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                dragInput = input
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                updateDrag()
+            end
+        end)
+    end)
+end
+
+drag(aa.PopupFrame)
+
+GUI.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        previewFrame.Visible = false
+        currentHoverItem = nil
+    end
+end)
+
+game:FindService('StarterGui'):SetCore('SendNotification', {
+    Title = 'Decal Logger',
+    Text = 'Successfully loaded!',
+    Icon = 'rbxassetid://16923152454',
+    Duration = 5,
+})
